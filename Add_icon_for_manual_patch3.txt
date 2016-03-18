@@ -1,0 +1,181 @@
+### Eclipse Workspace Patch 1.0
+#P Prism
+Index: src/userinterface/properties/GUIMultiProperties.java
+===================================================================
+--- src/userinterface/properties/GUIMultiProperties.java	(revision 11244)
++++ src/userinterface/properties/GUIMultiProperties.java	(working copy)
+@@ -1501,7 +1501,9 @@
+ 			return (propList.getSelectedProperties().size() > 0);
+ 		} else if (action == GUIPrism.getClipboardPlugin().getCopyAction()) {
+ 			return (propList.getSelectedProperties().size() > 0);
+-		} else if (action == GUIPrism.getClipboardPlugin().getSelectAllAction()) {
++		} else if (action == GUIPrism.getClipboardPlugin().getSelectAllAction()
++				|| action == GUIPrism.getClipboardPlugin().getOpenWebBrowserAction(2)
++				) {
+ 			return true;
+ 		}
+ 
+Index: images/smallManual.png
+===================================================================
+Cannot display: file marked as a binary type.
+svn:mime-type = application/octet-stream
+
+Property changes on: images/smallManual.png
+___________________________________________________________________
+Added: svn:mime-type
+## -0,0 +1 ##
++application/octet-stream
+Index: src/userinterface/GUIClipboard.java
+===================================================================
+--- src/userinterface/GUIClipboard.java	(revision 11244)
++++ src/userinterface/GUIClipboard.java	(working copy)
+@@ -27,13 +27,20 @@
+ 
+ package userinterface;
+ 
++import java.awt.Desktop;
+ import java.awt.Toolkit;
+ import java.awt.datatransfer.Clipboard;
+ import java.awt.datatransfer.FlavorEvent;
+ import java.awt.datatransfer.FlavorListener;
+ import java.awt.event.*;
++import java.net.MalformedURLException;
++import java.net.URISyntaxException;
++import java.net.URL;
++
+ import javax.swing.*;
+ 
++import com.sun.org.apache.xerces.internal.util.URI;
++
+ import userinterface.util.*;
+ 
+ /**
+@@ -54,12 +61,13 @@
+ public class GUIClipboard extends GUIPlugin
+ {
+ 	/* the current GUIPlugin undoManager */
++	private int pluginType=1;
+ 	private GUIPrism prism;
+ 	private GUIPlugin plugin;
+ 	private GUIUndoManager undoManager;
+     private JMenu editMenu;
+     private JToolBar editToolBar;
+-    private Action actionUndo, actionRedo, actionCut, actionCopy, actionPaste, actionDelete, actionSelectAll;
++    private Action actionUndo, actionRedo, actionCut, actionCopy, actionPaste, actionDelete, actionSelectAll, actionOpenWebBrowser;
+         
+     /** Creates a new instance of GUIClipboard */
+     public GUIClipboard(GUIPrism pr)
+@@ -133,7 +141,8 @@
+ 		actionCut.setEnabled(plugin != null && plugin.canDoClipBoardAction(actionCut));
+ 		actionPaste.setEnabled(plugin != null && plugin.canDoClipBoardAction(actionPaste));
+ 		actionDelete.setEnabled(plugin != null && plugin.canDoClipBoardAction(actionDelete));
+-		actionSelectAll.setEnabled(plugin != null && plugin.canDoClipBoardAction(actionSelectAll));		
++		actionSelectAll.setEnabled(plugin != null && plugin.canDoClipBoardAction(actionSelectAll));
++		actionOpenWebBrowser.setEnabled(plugin != null && plugin.canDoClipBoardAction(actionOpenWebBrowser));
+ 	}
+ 
+ 	public void takeCLArgs(String args[])
+@@ -202,6 +211,8 @@
+             editMenu.add(new JMenuItem(actionDelete));
+             editMenu.add(new JSeparator());
+             editMenu.add(new JMenuItem(actionSelectAll));
++            editMenu.add(new JSeparator());
++            editMenu.add(new JMenuItem(actionOpenWebBrowser));
+         }
+         
+         editToolBar = new JToolBar();
+@@ -246,6 +257,11 @@
+ 	    b5.setToolTipText("Select all");
+ 	    b5.setText("");
+ 	    editToolBar.add(b5);
++	    
++	    JButton b8 = new JButton(actionOpenWebBrowser);
++	    b8.setToolTipText("Open Manual");
++	    b8.setText("");
++	    editToolBar.add(b8);
+         }
+         editToolBar.setFloatable(false);
+     }
+@@ -345,7 +361,20 @@
+         actionSelectAll.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_S));
+         actionSelectAll.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_A, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
+         actionSelectAll.putValue(Action.NAME, "Select all");
+-        actionSelectAll.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallSelectAll.png"));     
++        actionSelectAll.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallSelectAll.png"));
++        
++        actionOpenWebBrowser = new AbstractAction()
++        {
++            public void actionPerformed(ActionEvent e)
++            {
++                openPrismManual();
++            }
++        };
++        actionOpenWebBrowser.putValue(Action.LONG_DESCRIPTION, "Open the Prism Manual");
++        actionOpenWebBrowser.putValue(Action.MNEMONIC_KEY, new Integer(KeyEvent.VK_S));
++        actionOpenWebBrowser.putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_W, Toolkit.getDefaultToolkit().getMenuShortcutKeyMask()));
++        actionOpenWebBrowser.putValue(Action.NAME, "Open Manual");
++        actionOpenWebBrowser.putValue(Action.SMALL_ICON, GUIPrism.getIconFromImage("smallManual.png"));     
+     }
+     
+     public OptionsPanel getOptions()
+@@ -383,7 +412,45 @@
+ 	public Action getSelectAllAction() {
+ 		return actionSelectAll;
+ 	}
++	
++	public Action getOpenWebBrowserAction(int type) {
++		this.pluginType=type;
++		return actionOpenWebBrowser;
++	}
++
++	public void openPrismManual(){
++		URL url = null;
++		try {
++			if(pluginType==1){
++				url = new URL("http://www.prismmodelchecker.org/manual/RunningPRISM/StartingPRISM");
++			}else{
++				url = new URL("http://www.prismmodelchecker.org/manual/PropertySpecification/Introduction");
++			}
++		} catch (MalformedURLException e) {
++			// TODO Auto-generated catch block
++			e.printStackTrace();
++		}
++		openWebpage(url);
++	}
++	
++	public static void openWebpage(java.net.URI uri) {
++	    Desktop desktop = Desktop.isDesktopSupported() ? Desktop.getDesktop() : null;
++	    if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
++	        try {
++	            desktop.browse(uri);
++	        } catch (Exception e) {
++	            e.printStackTrace();
++	        }
++	    }
++	}
+ 
++	public static void openWebpage(URL url) {
++	    try {
++	        openWebpage(url.toURI());
++	    } catch (URISyntaxException e) {
++	        e.printStackTrace();
++	    }
++	}
+ 	
+ 	
+ 	
+Index: src/userinterface/model/GUITextModelEditor.java
+===================================================================
+--- src/userinterface/model/GUITextModelEditor.java	(revision 11244)
++++ src/userinterface/model/GUITextModelEditor.java	(working copy)
+@@ -845,7 +845,9 @@
+ 		{
+ 			return (editor.getSelectedText() != null);
+ 		}
+-		else if (action == GUIPrism.getClipboardPlugin().getSelectAllAction())
++		else if (action == GUIPrism.getClipboardPlugin().getSelectAllAction()
++				|| action == GUIPrism.getClipboardPlugin().getOpenWebBrowserAction(1)
++				)
+ 		{
+ 			return true;
+ 		}
