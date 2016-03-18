@@ -1,0 +1,57 @@
+Index: src/userinterface/properties/GUIPropertyEditor.java
+===================================================================
+--- src/userinterface/properties/GUIPropertyEditor.java	(revision 11238)
++++ src/userinterface/properties/GUIPropertyEditor.java	(working copy)
+@@ -409,6 +409,12 @@
+ 			props.cancelProperty(id);
+ 			dispose();
+ 		}
++		else if(e.getSource() == alwaysButton)
++		{
++			int curs = propertyText.getCaretPosition();
++			addString("P><p [ G () ]", CURSOR, 1);
++			propertyText.select(curs+1, curs+4);
++		}
+ 		
+ 	}
+ 	
+@@ -473,6 +479,7 @@
+ 	
+ 	private void addActionListeners()
+ 	{
++		alwaysButton.addActionListener(this);
+ 		trueButton.addActionListener(this);
+ 		falseButton.addActionListener(this);
+ 		andButton.addActionListener(this);
+@@ -522,6 +529,7 @@
+         untilButton = new javax.swing.JButton();
+         steadyStateButton = new javax.swing.JButton();
+         falseButton = new javax.swing.JButton();
++        alwaysButton = new javax.swing.JButton();
+         orButton = new javax.swing.JButton();
+         nextButton = new javax.swing.JButton();
+         boundedUntilButton = new javax.swing.JButton();
+@@ -710,6 +718,15 @@
+         gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
+         gridBagConstraints.weightx = 0.2;
+         jPanel7.add(boundedUntilButton, gridBagConstraints);
++        
++        alwaysButton.setText("always");
++        gridBagConstraints = new java.awt.GridBagConstraints();
++        gridBagConstraints.gridx = 11;
++        gridBagConstraints.gridy = 5;
++        gridBagConstraints.fill = java.awt.GridBagConstraints.HORIZONTAL;
++        gridBagConstraints.anchor = java.awt.GridBagConstraints.WEST;
++        gridBagConstraints.weightx = 0.2;
++        jPanel7.add(alwaysButton, gridBagConstraints);
+ 
+         jPanel7.add(jPanel11, new java.awt.GridBagConstraints());
+ 
+@@ -911,6 +928,7 @@
+     private javax.swing.JButton steadyStateButton;
+     private javax.swing.JButton trueButton;
+     private javax.swing.JButton untilButton;
++    private javax.swing.JButton alwaysButton;
+     // End of variables declaration//GEN-END:variables
+ 	
+ }
